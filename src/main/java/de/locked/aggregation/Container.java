@@ -15,8 +15,8 @@ public class Container<T> {
 
     // precomputed Link from class fields to what we want to compute
     private final Map<Field, Tuple> baseAggregationMap = new HashMap<>();
-    // aggregation from a primary key 
-    private final Map<Key, Map<Field, Tuple>> map = new HashMap<>();
+    // aggregation from a primary key to the  
+    private final Map<Key, List<Tuple>> map = new HashMap<>();
 
     private final List<Field> idFields;
 
@@ -65,19 +65,21 @@ public class Container<T> {
         private final String alias;
         private final Aggregate agg;
         private final Class type;
+        private final Field field;
 
-        public Tuple(Class<? extends Aggregate> clazz, String alias, Class type) {
+        public Tuple(Class<? extends Aggregate> clazz, String alias, Field field) {
             try {
                 this.agg = clazz.newInstance();
+                this.type = field.getType();
                 this.alias = alias;
-                this.type = type;
+                this.field = field;
             } catch (InstantiationException | IllegalAccessException ex) {
                 throw new IllegalArgumentException(ex);
             }
         }
 
         public Tuple get() {
-            return new Tuple(agg.getClass(), alias, type);
+            return new Tuple(agg.getClass(), alias, field);
         }
     }
 
@@ -91,19 +93,18 @@ public class Container<T> {
             }
             if (f.isAnnotationPresent(Count.class)) {
                 String alias = f.getAnnotation(Count.class).alias();
-                Class type = f.getType();
-                Tuple tuple = new Tuple(CountAggregate.class, alias, type);
+                Tuple tuple = new Tuple(CountAggregate.class, alias, f);
                 baseAggregationMap.put(f, tuple);
             }
         }
     }
 
-    private Map<Field, Tuple> getMap() {
-        Map<Field, Tuple> m = new HashMap<>(baseAggregationMap.size());
+    private List<Tuple> getMap() {
+        List<Tuple> m = new ArrayList<>(baseAggregationMap.size());
         for (Map.Entry<Field, Tuple> e : baseAggregationMap.entrySet()) {
-            m.put(e.getKey(), e.getValue().get());
+            m.add(e.getValue().get());
         }
-        return Collections.unmodifiableMap(m);
+        return Collections.unmodifiableList(m);
     }
 
     public void put(T object) {
@@ -115,15 +116,14 @@ public class Container<T> {
             }
             Key key = new Key(k);
 
-            Map<Field, Tuple> tupleMap = map.get(key);
+            List<Tuple> tupleMap = map.get(key);
             if (tupleMap == null) {
                 tupleMap = getMap();
                 map.put(key, tupleMap);
             }
 
-            for (Map.Entry<Field, Tuple> e : tupleMap.entrySet()) {
-                Field f = e.getKey();
-                Tuple tuple = e.getValue();
+            for (Tuple tuple : tupleMap) {
+                Field f = tuple.field;
                 if (tuple.type.equals(int.class)) {
                     int v = (int) f.get(object);
                     tuple.agg.apply(v);
@@ -139,12 +139,12 @@ public class Container<T> {
     @Override
     public String toString() {
         String s = "";
-        for (Map.Entry<Key, Map<Field, Tuple>> e : map.entrySet()) {
+        for (Map.Entry<Key, List<Tuple>> e : map.entrySet()) {
             Key key = e.getKey();
             s += key.toString() + ": ";
 
-            Map<Field, Tuple> tuples = e.getValue();
-            for (Tuple tuple : tuples.values()) {
+            List<Tuple> tuples = e.getValue();
+            for (Tuple tuple : tuples) {
                 s += "\n\t" + tuple.alias + ": " + tuple.agg.value();
             }
             s += "\n";

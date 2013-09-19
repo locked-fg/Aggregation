@@ -11,23 +11,27 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class App {
 
+    static Random r = new Random();
+
     public static void main(String[] args) {
-        Entity a = new Entity(1, 0);
-        Entity b = new Entity(1, 0);
-        Entity c = new Entity(1, 0);
-        Entity d = new Entity(0, 0);
-
         Container<Entity> container = new Container<>(Entity.class);
-        container.put(a);
-        container.put(b);
-        container.put(c);
-        container.put(d);
 
+        long start = System.currentTimeMillis();
+        for (int i = 0; i < 1000_000; i++) {
+            int a = r.nextInt(2);
+            int b = r.nextInt(2);
+
+            Entity aa = new Entity(a, b);
+            container.put(aa);
+        }
+        long stop = System.currentTimeMillis();
+        System.out.println((stop - start) + "ms");
         System.out.println(container.toString());
     }
 
@@ -48,5 +52,3 @@ class Entity {
         this.b = b;
     }
 }
-
-

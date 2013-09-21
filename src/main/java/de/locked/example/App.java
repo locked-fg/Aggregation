@@ -1,5 +1,6 @@
 package de.locked.example;
 
+import de.locked.aggregation.Avg;
 import de.locked.aggregation.Container;
 import de.locked.aggregation.Count;
 import de.locked.aggregation.Id;
@@ -37,19 +38,21 @@ public class App {
 class Entity {
 
     @Id(order = 0)
-    int a = 0;
+    int a;
     @Id(order = 1)
-    long b = 1;
-
-    @Count(alias = "count")
-    int cnt = 0;
+    long b;
 
     @Sum(alias = "mySum")
+    int cnt1 = 0;
+
+    @Count(alias = "count")
+    @Avg(alias = "myAverage")
     int cnt2 = 0;
 
     public Entity(int a, int b) {
         this.a = a;
         this.b = b;
+        this.cnt1 = a + b;
         this.cnt2 = a + b;
     }
 }

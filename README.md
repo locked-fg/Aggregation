@@ -78,19 +78,21 @@ public class App {
 class Entity {
 
     @Id(order = 0)
-    int a = 0;
+    int a;
     @Id(order = 1)
-    long b = 1;
-
-    @Count(alias = "count")
-    int cnt = 0;
+    long b;
 
     @Sum(alias = "mySum")
+    int cnt1 = 0;
+
+    @Count(alias = "count")
+    @Avg(alias = "myAverage")
     int cnt2 = 0;
 
     public Entity(int a, int b) {
         this.a = a;
         this.b = b;
+        this.cnt1 = a + b;
         this.cnt2 = a + b;
     }
 }
@@ -98,20 +100,25 @@ class Entity {
 
 Output:
 ```
-1757ms
+2005ms
 Key: 2 1 
-	count: 2498433.0
-	mySum: 7495299.0
+	mySum: 7495221.0
+	count: 2498407.0
+	myAverage: 3.0
 Key: 1 2 
-	count: 2500971.0
-	mySum: 7502913.0
+	mySum: 7501335.0
+	count: 2500445.0
+	myAverage: 3.0
 Key: 1 1 
-	count: 2499335.0
-	mySum: 4998670.0
+	mySum: 5005712.0
+	count: 2502856.0
+	myAverage: 2.0
 Key: 2 2 
-	count: 2501261.0
-	mySum: 1.0005044E7
+	mySum: 9993168.0
+	count: 2498292.0
+	myAverage: 4.0
+
 ```
 
 ## Runtime
-On my machine, the above example creates and aggregates 10 000 000 entities in ~1700ms.
+On my machine, the above example creates and aggregates 10 000 000 entities in ~2000ms.

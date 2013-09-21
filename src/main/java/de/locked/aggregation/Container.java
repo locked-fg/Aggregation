@@ -58,6 +58,7 @@ public class Container<T> {
         // register Default Aggregates
         aggregates.add(new CountAggregate());
         aggregates.add(new SumAggregate());
+        aggregates.add(new AvgAggregate());
     }
 
     /**

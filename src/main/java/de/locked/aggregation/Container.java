@@ -79,6 +79,7 @@ public class Container<T> {
         Field[] fields = clazz.getDeclaredFields();
         for (Field f : fields) {
             if (f.isAnnotationPresent(Id.class)) {
+                f.setAccessible(true);
                 idFields.add(f);
             }
             for (AbstractAggregate aggregate : aggregates) {
@@ -220,15 +221,7 @@ public class Container<T> {
      * @return
      */
     private Result getFor(T object) throws IllegalArgumentException, IllegalAccessException {
-        // build key
-        Object[] k = new Object[idFields.size()];
-        for (int i = 0; i < idFields.size(); i++) {
-            Field f = idFields.get(i);
-            f.setAccessible(true);
-            k[i] = f.get(object);
-        }
-
-        Result requestKey = new Result(k);
+        Result requestKey = buildRequestKey(object);
         Result key = resultAggregation.get(requestKey);
         if (key == null) {
             requestKey.init(getCopy());
@@ -236,6 +229,16 @@ public class Container<T> {
             key = requestKey;
         }
         return key;
+    }
+
+    // 35% of exec time are burnt in this method.
+    private Result buildRequestKey(T object) throws IllegalAccessException, IllegalArgumentException {
+        Object[] k = new Object[idFields.size()];
+        for (int i = 0; i < idFields.size(); i++) {
+            Field f = idFields.get(i);
+            k[i] = f.get(object);
+        }
+        return new Result(k);
     }
 
     public static class Result {
@@ -274,8 +277,7 @@ public class Container<T> {
 
         @Override
         public int hashCode() {
-            int hash = 3;
-            hash = 41 * hash + Arrays.deepHashCode(this.keys);
+            int hash = 59 + Arrays.deepHashCode(this.keys);
             return hash;
         }
 
@@ -346,8 +348,8 @@ public class Container<T> {
         public String getAlias() {
             return alias;
         }
-        
-        public double getValue(){
+
+        public double getValue() {
             return agg.value();
         }
     }

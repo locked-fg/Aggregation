@@ -15,7 +15,7 @@ public class App {
         // container.registerAggregate(new SumAggregate());
 
         long start = System.currentTimeMillis();
-        for (int i = 0; i < 100_000; i++) {
+        for (int i = 0; i < 1_000_000; i++) {
             int a = r.nextInt(2) + 1;
             int b = r.nextInt(2) + 1;
 

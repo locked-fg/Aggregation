@@ -21,9 +21,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 
 public class Container<T> {
@@ -37,16 +41,18 @@ public class Container<T> {
     private final List<AbstractAggregate> aggregates;
 
     // precomputed Link from class fields to what we want to compute
-    private final List<AggregationContainer> aggregationMapCache = new ArrayList<>();
+    private final List<Element> aggregationMapCache = new ArrayList<>();
 
     // aggregation from a primary key (Key) to the aggregation
     // this is what you actually want to iterate afterwards!
-    private final Map<Key, List<AggregationContainer>> resultAggregation = new HashMap<>();
+    private final Map<Result, Result> resultAggregation;
+//    private final Map<Key, List<AggregationContainer>> resultAggregation = new HashMap<>();
 
     // current state of the container
     private State currentState = new OpenState();
 
     public Container() {
+        this.resultAggregation = new HashMap<>();
         this.idFields = new ArrayList<>();
         this.aggregates = new ArrayList<>();
 
@@ -60,16 +66,8 @@ public class Container<T> {
      *
      * @return Map from key to list of results
      */
-    public HashMap<Key, List<Tuple>> getResults() {
-        HashMap<Key, List<Tuple>> result = new HashMap<>();
-        for (Map.Entry<Key, List<AggregationContainer>> entry : resultAggregation.entrySet()) {
-            List<Tuple> list = new ArrayList<>();
-            for (AggregationContainer container : entry.getValue()) {
-                list.add(new Tuple(container.alias, container.agg.value()));
-            }
-            result.put(entry.getKey(), list);
-        }
-        return result;
+    public Collection<Result> getResults() {
+        return resultAggregation.keySet();
     }
 
     /**
@@ -88,7 +86,7 @@ public class Container<T> {
                 if (f.isAnnotationPresent(annotationClass)) {
                     Annotation annotation = f.getAnnotation(annotationClass);
                     String alias = getAlias(annotation);
-                    AggregationContainer tuple = new AggregationContainer(aggregate, alias, f);
+                    Element tuple = new Element(aggregate, alias, f);
                     aggregationMapCache.add(tuple);
                 }
             }
@@ -125,9 +123,9 @@ public class Container<T> {
      *
      * @return List of aggregation containers
      */
-    private List<AggregationContainer> getCopy() {
-        List<AggregationContainer> m = new ArrayList<>(aggregationMapCache.size());
-        for (AggregationContainer e : aggregationMapCache) {
+    private List<Element> getCopy() {
+        List<Element> m = new ArrayList<>(aggregationMapCache.size());
+        for (Element e : aggregationMapCache) {
             m.add(e.getInstance());
         }
         return m;
@@ -149,24 +147,10 @@ public class Container<T> {
      */
     private void doAggregate(T object) {
         try {
-            // build key
-            Object[] k = new Object[idFields.size()];
-            for (int i = 0; i < idFields.size(); i++) {
-                Field f = idFields.get(i);
-                f.setAccessible(true);
-                k[i] = f.get(object);
-            }
-            Key key = new Key(k);
-
-            // new Primary Key?
-            List<AggregationContainer> tupleList = resultAggregation.get(key);
-            if (tupleList == null) {
-                tupleList = getCopy();
-                resultAggregation.put(key, tupleList);
-            }
+            Result key = getFor(object);
 
             // do the aggregation(s)
-            for (AggregationContainer tuple : tupleList) {
+            for (Element tuple : key.elements) {
                 Field f = tuple.field;
                 Class type = f.getType();
                 AbstractAggregate agg = tuple.agg;
@@ -219,12 +203,9 @@ public class Container<T> {
     @Override
     public String toString() {
         String s = "";
-        for (Map.Entry<Key, List<AggregationContainer>> e : resultAggregation.entrySet()) {
-            Key key = e.getKey();
+        for (Result key : resultAggregation.keySet()) {
             s += key.toString() + ": ";
-
-            List<AggregationContainer> tuples = e.getValue();
-            for (AggregationContainer tuple : tuples) {
+            for (Element tuple : key.elements) {
                 s += "\n\t" + tuple.alias + ": " + tuple.agg.value();
             }
             s += "\n";
@@ -232,17 +213,47 @@ public class Container<T> {
         return s;
     }
 
-    public static class Key {
+    /**
+     * Get the according key from the map.
+     *
+     * @param requestKey
+     * @return
+     */
+    private Result getFor(T object) throws IllegalArgumentException, IllegalAccessException {
+        // build key
+        Object[] k = new Object[idFields.size()];
+        for (int i = 0; i < idFields.size(); i++) {
+            Field f = idFields.get(i);
+            f.setAccessible(true);
+            k[i] = f.get(object);
+        }
+
+        Result requestKey = new Result(k);
+        Result key = resultAggregation.get(requestKey);
+        if (key == null) {
+            requestKey.init(getCopy());
+            resultAggregation.put(requestKey, requestKey);
+            key = requestKey;
+        }
+        return key;
+    }
+
+    public static class Result {
 
         private final Object[] keys;
+        private List<Element> elements;
 
         /**
          * Create a new Key Object from the given object array as primary keys.
          *
          * @param keys the Objects representing the primary keys.
          */
-        private Key(Object[] keys) {
+        private Result(Object[] keys) {
             this.keys = keys;
+        }
+
+        public List<Element> getElements() {
+            return elements;
         }
 
         /**
@@ -276,11 +287,15 @@ public class Container<T> {
             if (getClass() != obj.getClass()) {
                 return false;
             }
-            final Key other = (Key) obj;
+            final Result other = (Result) obj;
             if (!Arrays.deepEquals(this.keys, other.keys)) {
                 return false;
             }
             return true;
+        }
+
+        private void init(List<Element> list) {
+            this.elements = Collections.unmodifiableList(list);
         }
     }
 
@@ -311,21 +326,29 @@ public class Container<T> {
         }
     }
 
-    private class AggregationContainer {
+    public static class Element {
 
         private final String alias;
         private final AbstractAggregate agg;
         private final Field field;
 
-        public AggregationContainer(AbstractAggregate agg, String alias, Field field) {
+        public Element(AbstractAggregate agg, String alias, Field field) {
             this.agg = agg;
             this.alias = alias;
             this.field = field;
             field.setAccessible(true);
         }
 
-        public AggregationContainer getInstance() {
-            return new AggregationContainer(agg.getInstance(), alias, field);
+        public Element getInstance() {
+            return new Element(agg.getInstance(), alias, field);
+        }
+
+        public String getAlias() {
+            return alias;
+        }
+        
+        public double getValue(){
+            return agg.value();
         }
     }
 

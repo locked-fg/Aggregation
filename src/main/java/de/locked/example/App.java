@@ -4,9 +4,6 @@ import de.locked.aggregation.Container;
 import de.locked.aggregation.Count;
 import de.locked.aggregation.Id;
 import de.locked.aggregation.Sum;
-import de.locked.aggregation.SumAggregate;
-import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 public class App {
@@ -15,7 +12,7 @@ public class App {
 
     public static void main(String[] args) {
         Container<Entity> container = new Container<>();
-//        container.registerAggregate(new SumAggregate());
+        // container.registerAggregate(new SumAggregate());
 
         long start = System.currentTimeMillis();
         for (int i = 0; i < 100_000; i++) {
@@ -28,14 +25,13 @@ public class App {
         long stop = System.currentTimeMillis();
         System.out.println((stop - start) + "ms");
 
-        for (Map.Entry<Container.Key, List<Container.Tuple>> entry : container.getResults().entrySet()) {
-            System.out.println(entry.getKey());
-            for (Container.Tuple t : entry.getValue()) {
-                System.out.println("\t" + t);
+        for (Container.Result entry : container.getResults()) {
+            System.out.println(entry.toString());
+            for (Container.Element ac : entry.getElements()) {
+                System.out.println("\t" + ac.getAlias() + ": " + ac.getValue());
             }
         }
     }
-
 }
 
 class Entity {

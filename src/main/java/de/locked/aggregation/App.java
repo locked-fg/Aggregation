@@ -32,9 +32,13 @@ public class App {
         }
         long stop = System.currentTimeMillis();
         System.out.println((stop - start) + "ms");
-        
-        container.getResults();
-        System.out.println(container.toString());
+
+        for (Map.Entry<Container.Key, List<Container.Tuple>> entry : container.getResults().entrySet()) {
+            System.out.println(entry.getKey());
+            for (Container.Tuple t : entry.getValue()) {
+                System.out.println("\t" + t);
+            }
+        }
     }
 
 }

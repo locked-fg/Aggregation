@@ -233,6 +233,10 @@ public class Container<T> {
             return value;
         }
 
+        @Override
+        public String toString() {
+            return "Tuple{" + "alias=" + alias + ", value=" + value + '}';
+        }
     }
 
     private class AggregationContainer {

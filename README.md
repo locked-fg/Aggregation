@@ -23,7 +23,7 @@ SELECT field1, field2, field3, SUM(field_X) FROM objectlist GROUP BY field1, fie
 ```
 Holding all objects in memory and summing/grouping at the end wasn't an option in our cases where millions of entities are streamed through your application. And especially defining the aggregates and a pseudo primary key by hand is far from coder friendly and error prone as it involves overriding hashode, equals etc ...
 
-So I prototyped this aggragation container that works with simple classes and annotations.
+So I prototyped this aggregation container that works with simple classes and annotations.
 The entities just need to be annotated and pushed into the container. The rest is done automatically. No hashcode, no equals, no extending classes:
 ```java
 class Entity {
@@ -77,9 +77,9 @@ public class App {
 
 class Entity {
 
-    @Id
+    @Id(order = 0)
     int a = 0;
-    @Id
+    @Id(order = 1)
     long b = 1;
 
     @Count(alias = "count")
@@ -96,5 +96,22 @@ class Entity {
 }
 ```
 
+Output:
+```
+1757ms
+Key: 2 1 
+	count: 2498433.0
+	mySum: 7495299.0
+Key: 1 2 
+	count: 2500971.0
+	mySum: 7502913.0
+Key: 1 1 
+	count: 2499335.0
+	mySum: 4998670.0
+Key: 2 2 
+	count: 2501261.0
+	mySum: 1.0005044E7
+```
+
 ## Runtime
-On my machine, the above example creates and aggregates 10 000 000 entities in 1700ms.
+On my machine, the above example creates and aggregates 10 000 000 entities in ~1700ms.

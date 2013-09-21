@@ -20,7 +20,7 @@ public class App {
     static Random r = new Random();
 
     public static void main(String[] args) {
-        Container<Entity> container = new Container<>(Entity.class);
+        Container<Entity> container = new Container<>();
 
         long start = System.currentTimeMillis();
         for (int i = 0; i < 1000_000; i++) {
@@ -32,6 +32,8 @@ public class App {
         }
         long stop = System.currentTimeMillis();
         System.out.println((stop - start) + "ms");
+        
+        container.getResults();
         System.out.println(container.toString());
     }
 

@@ -20,55 +20,31 @@ public class Container<T> {
     private final List<AbstractAggregate> aggregates;
 
     // precomputed Link from class fields to what we want to compute
-    private final List<AggregationContainer> ggregationMapCache = new ArrayList<>();
+    private final List<AggregationContainer> aggregationMapCache = new ArrayList<>();
     // aggregation from a primary key (Key) to the aggregation
     // this is what you actually want to iterate afterwards!
-    private final Map<Key, List<AggregationContainer>> map = new HashMap<>();
+    private final Map<Key, List<AggregationContainer>> resultAggregation = new HashMap<>();
 
     private State currentState = new OpenState();
 
-    private interface State<T> {
-
-        void register(AbstractAggregate agg);
-
-        void aggregate(T o);
-    }
-
-    private class OpenState implements State<T> {
-
-        @Override
-        public void register(AbstractAggregate agg) {
-            doRegisterAggregate(agg);
-        }
-
-        @Override
-        public void aggregate(T o) {
-            doPrepare(o.getClass());
-            currentState = new AggregateState();
-            currentState.aggregate(o);
-        }
-    }
-
-    private class AggregateState implements State<T> {
-
-        @Override
-        public void register(AbstractAggregate agg) {
-            throw new IllegalStateException("You can only register new functions before doing the first aggregate.");
-        }
-
-        @Override
-        public void aggregate(T o) {
-            doAggregate(o);
-        }
-    }
-
-    public Container(Class clazz) {
+    public Container() {
         this.idFields = new ArrayList<>();
         this.aggregates = new ArrayList<>();
 
         // register Default Aggregates
         aggregates.add(new CountAggregate());
+    }
 
+    public HashMap<Key, List<Tuple>> getResults() {
+        HashMap<Key, List<Tuple>> result = new HashMap<>();
+        for (Map.Entry<Key, List<AggregationContainer>> entry : resultAggregation.entrySet()) {
+            List<Tuple> list = new ArrayList<>();
+            for (AggregationContainer container : entry.getValue()) {
+                list.add(new Tuple(container.alias, container.agg.value()));
+            }
+            result.put(entry.getKey(), list);
+        }
+        return result;
     }
 
     // called from state
@@ -84,7 +60,7 @@ public class Container<T> {
                     Annotation annotation = f.getAnnotation(annotationClass);
                     String alias = getAlias(annotation);
                     AggregationContainer tuple = new AggregationContainer(aggregate, alias, f);
-                    ggregationMapCache.add(tuple);
+                    aggregationMapCache.add(tuple);
                 }
             }
         }
@@ -108,8 +84,8 @@ public class Container<T> {
     }
 
     private List<AggregationContainer> getMap() {
-        List<AggregationContainer> m = new ArrayList<>(ggregationMapCache.size());
-        for (AggregationContainer e : ggregationMapCache) {
+        List<AggregationContainer> m = new ArrayList<>(aggregationMapCache.size());
+        for (AggregationContainer e : aggregationMapCache) {
             m.add(e.get());
         }
         return m;
@@ -131,10 +107,10 @@ public class Container<T> {
             Key key = new Key(k);
 
             // new Primary Key?
-            List<AggregationContainer> tupleList = map.get(key);
+            List<AggregationContainer> tupleList = resultAggregation.get(key);
             if (tupleList == null) {
                 tupleList = getMap();
-                map.put(key, tupleList);
+                resultAggregation.put(key, tupleList);
             }
 
             // do the aggregation(s)
@@ -179,7 +155,7 @@ public class Container<T> {
     @Override
     public String toString() {
         String s = "";
-        for (Map.Entry<Key, List<AggregationContainer>> e : map.entrySet()) {
+        for (Map.Entry<Key, List<AggregationContainer>> e : resultAggregation.entrySet()) {
             Key key = e.getKey();
             s += key.toString() + ": ";
 
@@ -192,12 +168,19 @@ public class Container<T> {
         return s;
     }
 
-    private class Key {
+    public static class Key {
 
         private final Object[] keys;
 
         public Key(Object[] keys) {
             this.keys = keys;
+        }
+
+        /**
+         * @return returns a COPY of the keys array
+         */
+        public Object[] getKeys() {
+            return keys.clone();
         }
 
         @Override
@@ -232,6 +215,26 @@ public class Container<T> {
         }
     }
 
+    public static class Tuple {
+
+        private final String alias;
+        private final double value;
+
+        private Tuple(String alias, double value) {
+            this.alias = alias;
+            this.value = value;
+        }
+
+        public String getAlias() {
+            return alias;
+        }
+
+        public double getValue() {
+            return value;
+        }
+
+    }
+
     private class AggregationContainer {
 
         private final String alias;
@@ -248,6 +251,41 @@ public class Container<T> {
 
         public AggregationContainer get() {
             return new AggregationContainer(agg.getInstance(), alias, field);
+        }
+    }
+
+    private interface State<T> {
+
+        void register(AbstractAggregate agg);
+
+        void aggregate(T o);
+    }
+
+    private class OpenState implements State<T> {
+
+        @Override
+        public void register(AbstractAggregate agg) {
+            doRegisterAggregate(agg);
+        }
+
+        @Override
+        public void aggregate(T o) {
+            doPrepare(o.getClass());
+            currentState = new AggregateState();
+            currentState.aggregate(o);
+        }
+    }
+
+    private class AggregateState implements State<T> {
+
+        @Override
+        public void register(AbstractAggregate agg) {
+            throw new IllegalStateException("You can only register new functions before doing the first aggregate.");
+        }
+
+        @Override
+        public void aggregate(T o) {
+            doAggregate(o);
         }
     }
 

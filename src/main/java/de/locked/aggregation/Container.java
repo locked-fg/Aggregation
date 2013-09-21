@@ -38,6 +38,7 @@ public class Container<T> {
 
     // precomputed Link from class fields to what we want to compute
     private final List<AggregationContainer> aggregationMapCache = new ArrayList<>();
+
     // aggregation from a primary key (Key) to the aggregation
     // this is what you actually want to iterate afterwards!
     private final Map<Key, List<AggregationContainer>> resultAggregation = new HashMap<>();
@@ -167,7 +168,7 @@ public class Container<T> {
             // do the aggregation(s)
             for (AggregationContainer tuple : tupleList) {
                 Field f = tuple.field;
-                Class type = tuple.type;
+                Class type = f.getType();
                 AbstractAggregate agg = tuple.agg;
 
                 if (type.equals(int.class)) {
@@ -314,12 +315,10 @@ public class Container<T> {
 
         private final String alias;
         private final AbstractAggregate agg;
-        private final Class type;
         private final Field field;
 
         public AggregationContainer(AbstractAggregate agg, String alias, Field field) {
             this.agg = agg;
-            this.type = field.getType();
             this.alias = alias;
             this.field = field;
             field.setAccessible(true);

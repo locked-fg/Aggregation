@@ -23,11 +23,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Logger;
 
 public class Container<T> {
@@ -92,6 +91,17 @@ public class Container<T> {
                 }
             }
         }
+
+        // sort the id fields by the order
+        Collections.sort(idFields, new Comparator<Field>() {
+
+            @Override
+            public int compare(Field o1, Field o2) {
+                int x = o1.getAnnotation(Id.class).order();
+                int y = o2.getAnnotation(Id.class).order();
+                return Integer.compare(x, y);
+            }
+        });
     }
 
     /**

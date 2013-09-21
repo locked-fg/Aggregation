@@ -23,5 +23,11 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(value = {FIELD})
 public @interface Id {
-}
 
+    /**
+     * Order value which is used to order of the fields in the primary key array.
+     *
+     * @return order value
+     */
+    int order() default 0;
+}

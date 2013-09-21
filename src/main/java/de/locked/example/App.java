@@ -36,9 +36,9 @@ public class App {
 
 class Entity {
 
-    @Id
+    @Id(order = 0)
     int a = 0;
-    @Id
+    @Id(order = 1)
     long b = 1;
 
     @Count(alias = "count")

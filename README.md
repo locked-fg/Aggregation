@@ -97,4 +97,4 @@ class Entity {
 ```
 
 ## Runtime
-On my machine, the above example creates and aggregates 10 000 000 entitied in 1700ms.
+On my machine, the above example creates and aggregates 10 000 000 entities in 1700ms.

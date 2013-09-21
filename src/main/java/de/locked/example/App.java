@@ -37,15 +37,15 @@ public class App {
 class Entity {
 
     @Id
-    public int a = 0;
+    int a = 0;
     @Id
-    public long b = 1;
+    long b = 1;
 
     @Count(alias = "count")
-    public int cnt = 0;
+    int cnt = 0;
 
     @Sum(alias = "mySum")
-    public int cnt2 = 0;
+    int cnt2 = 0;
 
     public Entity(int a, int b) {
         this.a = a;

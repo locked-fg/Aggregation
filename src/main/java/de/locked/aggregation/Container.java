@@ -25,7 +25,7 @@ public class Container<T> {
     // this is what you actually want to iterate afterwards!
     private final Map<Key, List<AggregationContainer>> map = new HashMap<>();
 
-    private State<T> currentState = new Open();
+    private State currentState = new OpenState();
 
     private interface State<T> {
 
@@ -34,7 +34,7 @@ public class Container<T> {
         void aggregate(T o);
     }
 
-    private class Open implements State<T> {
+    private class OpenState implements State<T> {
 
         @Override
         public void register(AbstractAggregate agg) {
@@ -44,12 +44,12 @@ public class Container<T> {
         @Override
         public void aggregate(T o) {
             doPrepare(o.getClass());
-            currentState = new AggregateOnly();
+            currentState = new AggregateState();
             currentState.aggregate(o);
         }
     }
 
-    private class AggregateOnly implements State<T> {
+    private class AggregateState implements State<T> {
 
         @Override
         public void register(AbstractAggregate agg) {
@@ -62,7 +62,7 @@ public class Container<T> {
         }
     }
 
-    public Container(Class<T> clazz) {
+    public Container(Class clazz) {
         this.idFields = new ArrayList<>();
         this.aggregates = new ArrayList<>();
 
@@ -72,7 +72,7 @@ public class Container<T> {
     }
 
     // called from state
-    private void doPrepare(Class<T> clazz) {
+    private void doPrepare(Class clazz) {
         Field[] fields = clazz.getDeclaredFields();
         for (Field f : fields) {
             if (f.isAnnotationPresent(Id.class)) {

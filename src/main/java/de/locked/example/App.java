@@ -15,7 +15,7 @@ public class App {
 
     public static void main(String[] args) {
         Container<Entity> container = new Container<>();
-        container.registerAggregate(new SumAggregate());
+//        container.registerAggregate(new SumAggregate());
 
         long start = System.currentTimeMillis();
         for (int i = 0; i < 100_000; i++) {

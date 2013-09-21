@@ -30,8 +30,10 @@ public class Container<T> {
 
     private static final Logger LOG = Logger.getLogger(Container.class.getName());
 
+    // fields that cat as primary keys
     private final List<Field> idFields;
 
+    // aggregate objects that were registered
     private final List<AbstractAggregate> aggregates;
 
     // precomputed Link from class fields to what we want to compute
@@ -40,6 +42,7 @@ public class Container<T> {
     // this is what you actually want to iterate afterwards!
     private final Map<Key, List<AggregationContainer>> resultAggregation = new HashMap<>();
 
+    // current state of the container
     private State currentState = new OpenState();
 
     public Container() {
@@ -48,8 +51,14 @@ public class Container<T> {
 
         // register Default Aggregates
         aggregates.add(new CountAggregate());
+        aggregates.add(new SumAggregate());
     }
 
+    /**
+     * Obtain the result of the operation.
+     *
+     * @return Map from key to list of results
+     */
     public HashMap<Key, List<Tuple>> getResults() {
         HashMap<Key, List<Tuple>> result = new HashMap<>();
         for (Map.Entry<Key, List<AggregationContainer>> entry : resultAggregation.entrySet()) {
@@ -62,7 +71,11 @@ public class Container<T> {
         return result;
     }
 
-    // called from state
+    /**
+     * Checked call from the state machine at the first call to aggregate.
+     *
+     * @param clazz the class of the aggregate object.
+     */
     private void doPrepare(Class clazz) {
         Field[] fields = clazz.getDeclaredFields();
         for (Field f : fields) {
@@ -81,12 +94,20 @@ public class Container<T> {
         }
     }
 
-    private String getAlias(Annotation a) {
+    /**
+     * Get and return the "alias" value from the annotation.
+     *
+     * If no such annotation is present, the class name is returned as a default.
+     *
+     * @param annotation The Annotation to get the value from
+     * @return the 'value' or the classname if no value is found (which shouldn't be)
+     */
+    private String getAlias(Annotation annotation) {
         try {
-            String alias = a.getClass().getName();
-            Method method = a.getClass().getMethod("alias");
+            String alias = annotation.getClass().getName();
+            Method method = annotation.getClass().getMethod("alias");
             if (method != null) {
-                Object returnString = method.invoke(a);
+                Object returnString = method.invoke(annotation);
                 if (returnString != null && returnString instanceof String) {
                     alias = (String) returnString;
                 }
@@ -94,23 +115,37 @@ public class Container<T> {
             return alias;
         } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException |
                 InvocationTargetException ex) {
-            throw new IllegalArgumentException("Couldn't extract 'alias' from annotation " + a.getClass(), ex);
+            throw new IllegalArgumentException("Couldn't extract 'alias' from annotation " + annotation.getClass(), ex);
         }
     }
 
-    private List<AggregationContainer> getMap() {
+    /**
+     * Initializes a copy of the aggregations.
+     *
+     * @return List of aggregation containers
+     */
+    private List<AggregationContainer> getCopy() {
         List<AggregationContainer> m = new ArrayList<>(aggregationMapCache.size());
         for (AggregationContainer e : aggregationMapCache) {
-            m.add(e.get());
+            m.add(e.getInstance());
         }
         return m;
     }
 
+    /**
+     * Add this object to the aggregation container.
+     *
+     * @param object
+     */
     public void aggregate(T object) {
         currentState.aggregate(object);
     }
 
-    // called from state
+    /**
+     * checked aggregate call from the state machine
+     *
+     * @param object The object that should be aggregated
+     */
     private void doAggregate(T object) {
         try {
             // build key
@@ -125,7 +160,7 @@ public class Container<T> {
             // new Primary Key?
             List<AggregationContainer> tupleList = resultAggregation.get(key);
             if (tupleList == null) {
-                tupleList = getMap();
+                tupleList = getCopy();
                 resultAggregation.put(key, tupleList);
             }
 
@@ -160,12 +195,24 @@ public class Container<T> {
         }
     }
 
+    /**
+     * Register Aggregate to the container
+     *
+     * @param agg The aggregate object to the Container if this object is not already registered.
+     */
     public void registerAggregate(AbstractAggregate agg) {
         currentState.register(agg);
     }
 
+    /**
+     * checked register call from the state machine
+     *
+     * @param agg the Aggregate that should be registered into the container
+     */
     private void doRegisterAggregate(AbstractAggregate agg) {
-        aggregates.add(agg);
+        if (!aggregates.contains(agg)) {
+            aggregates.add(agg);
+        }
     }
 
     @Override
@@ -188,12 +235,17 @@ public class Container<T> {
 
         private final Object[] keys;
 
-        public Key(Object[] keys) {
+        /**
+         * Create a new Key Object from the given object array as primary keys.
+         *
+         * @param keys the Objects representing the primary keys.
+         */
+        private Key(Object[] keys) {
             this.keys = keys;
         }
 
         /**
-         * @return returns a COPY of the keys array
+         * @return returns a COPY of the keys array.
          */
         public Object[] getKeys() {
             return keys.clone();
@@ -231,6 +283,9 @@ public class Container<T> {
         }
     }
 
+    /**
+     * Result class holding the tuple for annotation alias : aggregation value.
+     */
     public static class Tuple {
 
         private final String alias;
@@ -270,11 +325,16 @@ public class Container<T> {
             field.setAccessible(true);
         }
 
-        public AggregationContainer get() {
+        public AggregationContainer getInstance() {
             return new AggregationContainer(agg.getInstance(), alias, field);
         }
     }
 
+    /**
+     * State machine for checking the currect call order.
+     *
+     * THis avoids that register is called AFTER the first aggregate. Which would result in an invalid state.
+     */
     private interface State<T> {
 
         void register(AbstractAggregate agg);
@@ -282,6 +342,9 @@ public class Container<T> {
         void aggregate(T o);
     }
 
+    /**
+     * State before the first call to aggregate.
+     */
     private class OpenState implements State<T> {
 
         @Override
@@ -297,6 +360,11 @@ public class Container<T> {
         }
     }
 
+    /**
+     * Aggregate State.
+     *
+     * No more register calls are allowed
+     */
     private class AggregateState implements State<T> {
 
         @Override

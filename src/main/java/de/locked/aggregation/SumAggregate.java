@@ -15,42 +15,27 @@
  */
 package de.locked.aggregation;
 
-public class CountAggregate extends AbstractAggregate {
+public class SumAggregate extends AbstractAggregate {
 
-    private int i = 0;
+    double sum = 0;
 
-    public CountAggregate() {
-        super(Count.class);
+    public SumAggregate() {
+        super(Sum.class);
     }
-    
-    
+
     @Override
     public void apply(double v) {
-        i++;
-    }
-
-    @Override
-    public void apply(boolean v) {
-        i++;
-    }
-
-    @Override
-    public void apply(char v) {
-        i++;
-    }
-
-    @Override
-    public void apply(Object o) {
-        i++;
-    }
-
-    @Override
-    public double value() {
-        return i;
+        sum += v;
     }
 
     @Override
     public AbstractAggregate getInstance() {
-        return new CountAggregate();
+        return new SumAggregate();
     }
+
+    @Override
+    public double value() {
+        return sum;
+    }
+
 }

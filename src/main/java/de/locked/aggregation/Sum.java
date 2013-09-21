@@ -15,42 +15,14 @@
  */
 package de.locked.aggregation;
 
-public class CountAggregate extends AbstractAggregate {
+import static java.lang.annotation.ElementType.FIELD;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-    private int i = 0;
+@Retention(RetentionPolicy.RUNTIME)
+@Target(value = {FIELD})
+public @interface Sum {
 
-    public CountAggregate() {
-        super(Count.class);
-    }
-    
-    
-    @Override
-    public void apply(double v) {
-        i++;
-    }
-
-    @Override
-    public void apply(boolean v) {
-        i++;
-    }
-
-    @Override
-    public void apply(char v) {
-        i++;
-    }
-
-    @Override
-    public void apply(Object o) {
-        i++;
-    }
-
-    @Override
-    public double value() {
-        return i;
-    }
-
-    @Override
-    public AbstractAggregate getInstance() {
-        return new CountAggregate();
-    }
+    String alias();
 }

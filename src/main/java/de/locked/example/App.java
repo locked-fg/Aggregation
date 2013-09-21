@@ -1,19 +1,13 @@
-package de.locked.aggregation;
+package de.locked.example;
 
-import static java.lang.annotation.ElementType.FIELD;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
+import de.locked.aggregation.Container;
+import de.locked.aggregation.Count;
+import de.locked.aggregation.Id;
+import de.locked.aggregation.Sum;
+import de.locked.aggregation.SumAggregate;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class App {
 
@@ -21,11 +15,12 @@ public class App {
 
     public static void main(String[] args) {
         Container<Entity> container = new Container<>();
+        container.registerAggregate(new SumAggregate());
 
         long start = System.currentTimeMillis();
-        for (int i = 0; i < 1000_000; i++) {
-            int a = r.nextInt(2);
-            int b = r.nextInt(2);
+        for (int i = 0; i < 100_000; i++) {
+            int a = r.nextInt(2) + 1;
+            int b = r.nextInt(2) + 1;
 
             Entity aa = new Entity(a, b);
             container.aggregate(aa);
@@ -46,15 +41,19 @@ public class App {
 class Entity {
 
     @Id
-    int a = 0;
+    public int a = 0;
     @Id
-    long b = 1;
+    public long b = 1;
 
     @Count(alias = "count")
-    int cnt = 0;
+    public int cnt = 0;
+
+    @Sum(alias = "mySum")
+    public int cnt2 = 0;
 
     public Entity(int a, int b) {
         this.a = a;
         this.b = b;
+        this.cnt2 = a + b;
     }
 }

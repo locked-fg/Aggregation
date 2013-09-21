@@ -1,9 +1,11 @@
 package de.locked.aggregation;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,12 +15,182 @@ public class Container<T> {
 
     private static final Logger LOG = Logger.getLogger(Container.class.getName());
 
-    // precomputed Link from class fields to what we want to compute
-    private final Map<Field, Tuple> baseAggregationMap = new HashMap<>();
-    // aggregation from a primary key to the  
-    private final Map<Key, List<Tuple>> map = new HashMap<>();
-
     private final List<Field> idFields;
+
+    private final List<AbstractAggregate> aggregates;
+
+    // precomputed Link from class fields to what we want to compute
+    private final List<AggregationContainer> ggregationMapCache = new ArrayList<>();
+    // aggregation from a primary key (Key) to the aggregation
+    // this is what you actually want to iterate afterwards!
+    private final Map<Key, List<AggregationContainer>> map = new HashMap<>();
+
+    private State<T> currentState = new Open();
+
+    private interface State<T> {
+
+        void register(AbstractAggregate agg);
+
+        void aggregate(T o);
+    }
+
+    private class Open implements State<T> {
+
+        @Override
+        public void register(AbstractAggregate agg) {
+            doRegisterAggregate(agg);
+        }
+
+        @Override
+        public void aggregate(T o) {
+            doPrepare(o.getClass());
+            currentState = new AggregateOnly();
+            currentState.aggregate(o);
+        }
+    }
+
+    private class AggregateOnly implements State<T> {
+
+        @Override
+        public void register(AbstractAggregate agg) {
+            throw new IllegalStateException("You can only register new functions before doing the first aggregate.");
+        }
+
+        @Override
+        public void aggregate(T o) {
+            doAggregate(o);
+        }
+    }
+
+    public Container(Class<T> clazz) {
+        this.idFields = new ArrayList<>();
+        this.aggregates = new ArrayList<>();
+
+        // register Default Aggregates
+        aggregates.add(new CountAggregate());
+
+    }
+
+    // called from state
+    private void doPrepare(Class<T> clazz) {
+        Field[] fields = clazz.getDeclaredFields();
+        for (Field f : fields) {
+            if (f.isAnnotationPresent(Id.class)) {
+                idFields.add(f);
+            }
+            for (AbstractAggregate aggregate : aggregates) {
+                Class annotationClass = aggregate.getAnnotation();
+                if (f.isAnnotationPresent(annotationClass)) {
+                    Annotation annotation = f.getAnnotation(annotationClass);
+                    String alias = getAlias(annotation);
+                    AggregationContainer tuple = new AggregationContainer(aggregate, alias, f);
+                    ggregationMapCache.add(tuple);
+                }
+            }
+        }
+    }
+
+    private String getAlias(Annotation a) {
+        try {
+            String alias = a.getClass().getName();
+            Method method = a.getClass().getMethod("alias");
+            if (method != null) {
+                Object returnString = method.invoke(a);
+                if (returnString != null && returnString instanceof String) {
+                    alias = (String) returnString;
+                }
+            }
+            return alias;
+        } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException |
+                InvocationTargetException ex) {
+            throw new IllegalArgumentException("Couldn't extract 'alias' from annotation " + a.getClass(), ex);
+        }
+    }
+
+    private List<AggregationContainer> getMap() {
+        List<AggregationContainer> m = new ArrayList<>(ggregationMapCache.size());
+        for (AggregationContainer e : ggregationMapCache) {
+            m.add(e.get());
+        }
+        return m;
+    }
+
+    public void aggregate(T object) {
+        currentState.aggregate(object);
+    }
+
+    // called from state
+    private void doAggregate(T object) {
+        try {
+            // build key
+            Object[] k = new Object[idFields.size()];
+            for (int i = 0; i < idFields.size(); i++) {
+                Field f = idFields.get(i);
+                k[i] = f.get(object);
+            }
+            Key key = new Key(k);
+
+            // new Primary Key?
+            List<AggregationContainer> tupleList = map.get(key);
+            if (tupleList == null) {
+                tupleList = getMap();
+                map.put(key, tupleList);
+            }
+
+            // do the aggregation(s)
+            for (AggregationContainer tuple : tupleList) {
+                Field f = tuple.field;
+                Class type = tuple.type;
+                AbstractAggregate agg = tuple.agg;
+
+                if (type.equals(int.class)) {
+                    agg.apply(f.getInt(object));
+                } else if (type.equals(byte.class)) {
+                    agg.apply(f.getByte(object));
+                } else if (type.equals(float.class)) {
+                    agg.apply(f.getFloat(object));
+                } else if (type.equals(double.class)) {
+                    agg.apply(f.getDouble(object));
+                } else if (type.equals(long.class)) {
+                    agg.apply(f.getLong(object));
+                } else if (type.equals(char.class)) {
+                    agg.apply(f.getChar(object));
+                } else if (type.equals(short.class)) {
+                    agg.apply(f.getShort(object));
+                } else if (type.equals(boolean.class)) {
+                    agg.apply(f.getBoolean(object));
+                } else {
+                    agg.apply(f.get(object));
+                }
+            }
+        } catch (IllegalArgumentException | IllegalAccessException ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    public void registerAggregate(AbstractAggregate agg) {
+        currentState.register(agg);
+    }
+
+    private void doRegisterAggregate(AbstractAggregate agg) {
+        aggregates.add(agg);
+    }
+
+    @Override
+    public String toString() {
+        String s = "";
+        for (Map.Entry<Key, List<AggregationContainer>> e : map.entrySet()) {
+            Key key = e.getKey();
+            s += key.toString() + ": ";
+
+            List<AggregationContainer> tuples = e.getValue();
+            for (AggregationContainer tuple : tuples) {
+                s += "\n\t" + tuple.alias + ": " + tuple.agg.value();
+            }
+            s += "\n";
+        }
+        return s;
+    }
 
     private class Key {
 
@@ -60,95 +232,23 @@ public class Container<T> {
         }
     }
 
-    private class Tuple {
+    private class AggregationContainer {
 
         private final String alias;
-        private final Aggregate agg;
+        private final AbstractAggregate agg;
         private final Class type;
         private final Field field;
 
-        public Tuple(Class<? extends Aggregate> clazz, String alias, Field field) {
-            try {
-                this.agg = clazz.newInstance();
-                this.type = field.getType();
-                this.alias = alias;
-                this.field = field;
-            } catch (InstantiationException | IllegalAccessException ex) {
-                throw new IllegalArgumentException(ex);
-            }
+        public AggregationContainer(AbstractAggregate agg, String alias, Field field) {
+            this.agg = agg;
+            this.type = field.getType();
+            this.alias = alias;
+            this.field = field;
         }
 
-        public Tuple get() {
-            return new Tuple(agg.getClass(), alias, field);
+        public AggregationContainer get() {
+            return new AggregationContainer(agg.getInstance(), alias, field);
         }
     }
 
-    public Container(Class<T> clazz) {
-        this.idFields = new ArrayList<>();
-
-        Field[] fields = clazz.getDeclaredFields();
-        for (Field f : fields) {
-            if (f.isAnnotationPresent(Id.class)) {
-                idFields.add(f);
-            }
-            if (f.isAnnotationPresent(Count.class)) {
-                String alias = f.getAnnotation(Count.class).alias();
-                Tuple tuple = new Tuple(CountAggregate.class, alias, f);
-                baseAggregationMap.put(f, tuple);
-            }
-        }
-    }
-
-    private List<Tuple> getMap() {
-        List<Tuple> m = new ArrayList<>(baseAggregationMap.size());
-        for (Map.Entry<Field, Tuple> e : baseAggregationMap.entrySet()) {
-            m.add(e.getValue().get());
-        }
-        return Collections.unmodifiableList(m);
-    }
-
-    public void put(T object) {
-        try {
-            Object[] k = new Object[idFields.size()];
-            for (int i = 0; i < idFields.size(); i++) {
-                Field f = idFields.get(i);
-                k[i] = f.get(object);
-            }
-            Key key = new Key(k);
-
-            List<Tuple> tupleMap = map.get(key);
-            if (tupleMap == null) {
-                tupleMap = getMap();
-                map.put(key, tupleMap);
-            }
-
-            for (Tuple tuple : tupleMap) {
-                Field f = tuple.field;
-                if (tuple.type.equals(int.class)) {
-                    int v = (int) f.get(object);
-                    tuple.agg.apply(v);
-                } else {
-                    throw new IllegalArgumentException("uncool " + tuple.type);
-                }
-            }
-        } catch (IllegalArgumentException | IllegalAccessException ex) {
-            throw new IllegalStateException(ex);
-        }
-    }
-
-    @Override
-    public String toString() {
-        String s = "";
-        for (Map.Entry<Key, List<Tuple>> e : map.entrySet()) {
-            Key key = e.getKey();
-            s += key.toString() + ": ";
-
-            List<Tuple> tuples = e.getValue();
-            for (Tuple tuple : tuples) {
-                s += "\n\t" + tuple.alias + ": " + tuple.agg.value();
-            }
-            s += "\n";
-        }
-        return s;
-    }
 }

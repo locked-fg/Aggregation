@@ -28,7 +28,7 @@ public class App {
             int b = r.nextInt(2);
 
             Entity aa = new Entity(a, b);
-            container.put(aa);
+            container.aggregate(aa);
         }
         long stop = System.currentTimeMillis();
         System.out.println((stop - start) + "ms");

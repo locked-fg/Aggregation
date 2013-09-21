@@ -1,11 +1,27 @@
 package de.locked.aggregation;
 
-public class CountAggregate extends Aggregate {
+public class CountAggregate extends AbstractAggregate {
 
-    int i = 0;
+    private Class annotation = Count.class;
+    private int i = 0;
 
     @Override
-    public void apply(int v) {
+    public void apply(double v) {
+        i++;
+    }
+
+    @Override
+    public void apply(boolean v) {
+        i++;
+    }
+
+    @Override
+    public void apply(char v) {
+        i++;
+    }
+
+    @Override
+    public void apply(Object o) {
         i++;
     }
 
@@ -15,7 +31,12 @@ public class CountAggregate extends Aggregate {
     }
 
     @Override
-    public Aggregate get() {
+    public AbstractAggregate getInstance() {
         return new CountAggregate();
+    }
+
+    @Override
+    public Class getAnnotation() {
+        return annotation;
     }
 }

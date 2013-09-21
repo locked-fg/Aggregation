@@ -8,7 +8,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(value = {FIELD})
 public @interface Count {
-
     String alias();
 }
-

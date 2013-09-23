@@ -25,8 +25,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 
 public class Container<T> {
@@ -266,8 +268,22 @@ public class Container<T> {
             this.keys = keys;
         }
 
+        /**
+         * @return List of aggregate elements
+         */
         public List<Element> getElements() {
             return elements;
+        }
+
+        /**
+         * @return map pointing from the alias to the element
+         */
+        public Map<String, Element> getElementsMap() {
+            Map<String, Element> result = new HashMap<>();
+            for (Element element : elements) {
+                result.put(element.getAlias(), element);
+            }
+            return result;
         }
 
         /**

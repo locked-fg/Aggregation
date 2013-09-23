@@ -1,9 +1,12 @@
 # Aggregation
 
-## Motivation
-In the past time I often faced the problem that I had to aggregate several fields of (streamed) objects.
-
-Given a class 
+## Motivation 
+In the past I faced the problem that I had to aggregate several fields of (streamed) objects. But just aggregating over 
+all objects would have been be too easy. What I actually needed was an object oriented version of 
+```sql
+SELECT field1, field2, field3, SUM(field_X) FROM objectlist GROUP BY field1, field2, field3
+```
+With ```objectlist``` being of a list (or more often a stream) of objects from classes like this:
 ```java
 class Entitiy {
  // group by those fields
@@ -15,22 +18,21 @@ class Entitiy {
  double field_x;
 }
 ```
-
-## Problem
-What I actually needed was an object oriented version of 
-```sql
-SELECT field1, field2, field3, SUM(field_X) FROM objectlist GROUP BY field1, field2, field3
-```
-Holding all objects in memory and summing/grouping at the end wasn't an option in our cases where millions of entities are streamed through your application. And especially defining the aggregates and a pseudo primary key by hand is far from coder friendly and error prone as it involves overriding hashode, equals etc ...
+Holding all objects in memory and summing/grouping at the end wasn't an option in our cases where millions of 
+entities are streamed through the application. And especially defining the aggregates and a pseudo primary key by 
+hand is far from coder friendly and error prone as it involves overriding hashode, equals etc ...
+This sometimes ended up in disgusting constructs like ```Map<Integer, Map<String, Map<Boolean, Double>>```.
+Of course iterating through the result was fun, too, as you always needed several nested loops.
 
 So I prototyped this aggregation container that works with simple classes and annotations.
-The entities just need to be annotated and pushed into the container. The rest is done automatically. No hashcode, no equals, no extending classes:
+The entities just need to be annotated and pushed into the container. The rest is done automatically. No need to 
+override hashcode() or equals(), no extending classes, no nested/multi dimensional HashMaps.
 ```java
 class Entity {
 
-    @Id
+    @Id 
     int a = 0;
-    @Id
+    @Id 
     long b = 1;
 
     @Count(alias = "count")

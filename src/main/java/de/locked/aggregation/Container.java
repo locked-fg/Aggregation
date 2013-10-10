@@ -371,6 +371,14 @@ public class Container<T> {
         }
     }
 
+    /**
+     * The Element class wraps a part of an aggregation result.
+     *
+     * The element itself is identified by the alias, the field to which the alias was assigned and the
+     * (Abstract)Aggregate object itself. One aggragtion container stores multiple Elements - one for each field.
+     * 
+     * The class might get renamed to a more appropriate name in the future.
+     */
     public static class Element {
 
         private final String alias;

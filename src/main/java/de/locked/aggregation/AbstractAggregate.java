@@ -15,6 +15,8 @@
  */
 package de.locked.aggregation;
 
+import java.util.Collection;
+
 public abstract class AbstractAggregate {
 
     /**
@@ -47,7 +49,29 @@ public abstract class AbstractAggregate {
         throw new UnsupportedOperationException();
     }
 
-    public abstract double value();
+    public Object getObject() {
+        throw new UnsupportedOperationException();
+    }
+
+    public char getChar() {
+        throw new UnsupportedOperationException();
+    }
+
+    public int getInt() {
+        throw new UnsupportedOperationException();
+    }
+
+    public boolean getBoolean() {
+        throw new UnsupportedOperationException();
+    }
+
+    public double getDouble() {
+        throw new UnsupportedOperationException();
+    }
+
+    public Collection getCollection() {
+        throw new UnsupportedOperationException();
+    }
 
     public Class getAnnotation() {
         return annotation;

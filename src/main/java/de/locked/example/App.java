@@ -28,8 +28,9 @@ public class App {
 
         for (Container.Result entry : container.getResults()) {
             System.out.println(entry.toString());
-            for (Container.Element ac : entry.getElements()) {
-                System.out.println("\t" + ac.getAlias() + ": " + ac.getValue());
+            for (Container.Element element : entry.getElements()) {
+                element.getAggregate();
+                System.out.println("\t" + element.getAlias() + ": " + element.getDouble());
             }
         }
     }

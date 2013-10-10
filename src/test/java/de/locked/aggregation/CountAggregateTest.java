@@ -33,13 +33,13 @@ public class CountAggregateTest {
 
         for (Container.Result entry : container.getResults()) {
             Object key = entry.getKeys()[0];
-            double value = entry.getElement("value");
+            int value = entry.getAggregate("value").getInt();
             if (key.equals(1)) {
-                assertEquals(1, value, 0.000d);
+                assertEquals(1, value);
             } else if (key.equals(2)) {
-                assertEquals(2, value, 0.000d);
+                assertEquals(2, value);
             } else if (key.equals(3)) {
-                assertEquals(3, value, 0.000d);
+                assertEquals(3, value);
             }
         }
     }

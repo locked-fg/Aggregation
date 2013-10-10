@@ -15,30 +15,37 @@
  */
 package de.locked.aggregation;
 
+import java.util.Collection;
+import java.util.Random;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-public class MinAggregateTest {
+public class DistinctAggregateTest {
 
     @Test
     public void testApplication() {
         Container<Entity> container = new Container<>();
-        container.aggregate(new Entity(1, 1));
-        container.aggregate(new Entity(2, 0));
-        container.aggregate(new Entity(2, 10));
-        container.aggregate(new Entity(3, 10));
-        container.aggregate(new Entity(3, 10));
-        container.aggregate(new Entity(3, 11));
+        container.aggregate(new Entity(1, "a"));
+        container.aggregate(new Entity(2, "a"));
+        container.aggregate(new Entity(2, "b"));
+        container.aggregate(new Entity(3, "a"));
+        container.aggregate(new Entity(3, "a"));
+        container.aggregate(new Entity(3, "c"));
 
         for (Container.Result entry : container.getResults()) {
             Object key = entry.getKeys()[0];
-            double value = entry.getAggregate("value").getDouble();
+            Collection values = entry.getAggregate("value").getCollection();
             if (key.equals(1)) {
-                assertEquals(1, value, 0.000d);
+                assertEquals(1, values.size());
+                assertTrue(values.contains("a"));
             } else if (key.equals(2)) {
-                assertEquals(0, value, 0.000d);
+                assertEquals(2, values.size());
+                assertTrue(values.contains("a"));
+                assertTrue(values.contains("b"));
             } else if (key.equals(3)) {
-                assertEquals(10, value, 0.000d);
+                assertEquals(2, values.size());
+                assertTrue(values.contains("a"));
+                assertTrue(values.contains("c"));
             }
         }
     }
@@ -48,10 +55,10 @@ public class MinAggregateTest {
         @Id(order = 0)
         int key;
 
-        @Min(alias = "value")
-        int value = 0;
+        @Distinct(alias = "value")
+        String value;
 
-        public Entity(int a, int b) {
+        public Entity(int a, String b) {
             this.key = a;
             this.value = b;
         }

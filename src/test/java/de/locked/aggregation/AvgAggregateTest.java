@@ -34,7 +34,7 @@ public class AvgAggregateTest {
 
         for (Container.Result entry : container.getResults()) {
             Object key = entry.getKeys()[0];
-            double value = entry.getElement("value");
+            double value = entry.getAggregate("value").getDouble();
             if (key.equals(1)) {
                 assertEquals(2, value, 0.000d);
             } else if (key.equals(2)) {

@@ -62,6 +62,7 @@ public class Container<T> {
         aggregates.add(new AvgAggregate());
         aggregates.add(new MinAggregate());
         aggregates.add(new MaxAggregate());
+        aggregates.add(new DistinctAggregate());
     }
 
     /**
@@ -221,7 +222,7 @@ public class Container<T> {
         for (Result key : resultAggregation.keySet()) {
             s += key.toString() + ": ";
             for (Element tuple : key.elements) {
-                s += "\n\t" + tuple.alias + ": " + tuple.agg.value();
+                s += "\n\t" + tuple.alias;
             }
             s += "\n";
         }
@@ -287,19 +288,13 @@ public class Container<T> {
             return result;
         }
 
-        /**
-         * Returns the value for the given alias.
-         *
-         * @param alias (sum, avg, min, ...)
-         * @return the according value or Double.NaN if no such element was found
-         */
-        public double getElement(String alias) {
+        public AbstractAggregate getAggregate(String alias) {
             for (Element element : elements) {
                 if (element.getAlias().equals(alias)) {
-                    return element.getValue();
+                    return element.getAggregate();
                 }
             }
-            return Double.NaN;
+            throw new IllegalArgumentException("no field annotated with alias: '" + alias + "'");
         }
 
         /**
@@ -400,8 +395,32 @@ public class Container<T> {
             return alias;
         }
 
-        public double getValue() {
-            return agg.value();
+        public AbstractAggregate getAggregate() {
+            return agg;
+        }
+
+        public Object getObject() {
+            return agg.getObject();
+        }
+
+        public char getChar() {
+            return agg.getChar();
+        }
+
+        public int getInt() {
+            return agg.getInt();
+        }
+
+        public boolean getBoolean() {
+            return agg.getBoolean();
+        }
+
+        public double getDouble() {
+            return agg.getDouble();
+        }
+
+        public Collection getCollection() {
+            return agg.getCollection();
         }
     }
 

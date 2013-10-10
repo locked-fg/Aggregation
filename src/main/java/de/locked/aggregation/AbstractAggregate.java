@@ -17,6 +17,9 @@ package de.locked.aggregation;
 
 public abstract class AbstractAggregate {
 
+    /**
+     * The annotation that belongs to this aggregation
+     */
     private final Class annotation;
 
     public AbstractAggregate(Class clazz) {

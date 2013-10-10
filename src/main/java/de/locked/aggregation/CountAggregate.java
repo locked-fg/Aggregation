@@ -23,7 +23,6 @@ public class CountAggregate extends AbstractAggregate {
         super(Count.class);
     }
     
-    
     @Override
     public void apply(double v) {
         i++;
@@ -45,7 +44,7 @@ public class CountAggregate extends AbstractAggregate {
     }
 
     @Override
-    public double value() {
+    public int getInt() {
         return i;
     }
 

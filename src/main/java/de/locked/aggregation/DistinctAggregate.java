@@ -15,26 +15,32 @@
  */
 package de.locked.aggregation;
 
-public class MinAggregate extends AbstractAggregate {
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
-    double min = Double.MAX_VALUE;
+public class DistinctAggregate extends AbstractAggregate {
 
-    public MinAggregate() {
-        super(Min.class);
+    private Set set = new HashSet();
+
+    public DistinctAggregate() {
+        super(Distinct.class);
     }
 
     @Override
-    public void apply(double v) {
-        min = Math.min(v, min);
+    public void apply(Object v) {
+        set.add(v);
     }
 
     @Override
     public AbstractAggregate getInstance() {
-        return new MinAggregate();
+        return new DistinctAggregate();
     }
 
     @Override
-    public double getDouble() {
-        return min;
+    public Collection getCollection() {
+        return Collections.unmodifiableSet(set);
     }
 }

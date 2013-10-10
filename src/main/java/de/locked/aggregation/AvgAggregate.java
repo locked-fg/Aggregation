@@ -35,7 +35,7 @@ public class AvgAggregate extends AbstractAggregate {
     }
 
     @Override
-    public double value() {
+    public double getDouble() {
         return sum / i;
     }
 

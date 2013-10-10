@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Dr. Franz Graf.
+ * Copyright 2013 Franz.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,26 +15,14 @@
  */
 package de.locked.aggregation;
 
-public class MinAggregate extends AbstractAggregate {
+import static java.lang.annotation.ElementType.FIELD;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-    double min = Double.MAX_VALUE;
+@Retention(RetentionPolicy.RUNTIME)
+@Target(value = {FIELD})
+public @interface Distinct {
 
-    public MinAggregate() {
-        super(Min.class);
-    }
-
-    @Override
-    public void apply(double v) {
-        min = Math.min(v, min);
-    }
-
-    @Override
-    public AbstractAggregate getInstance() {
-        return new MinAggregate();
-    }
-
-    @Override
-    public double getDouble() {
-        return min;
-    }
+    String alias();
 }

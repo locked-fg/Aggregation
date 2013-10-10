@@ -47,7 +47,6 @@ public class Container<T> {
     // aggregation from a primary key (Key) to the aggregation
     // this is what you actually want to iterate afterwards!
     private final Map<Result, Result> resultAggregation;
-//    private final Map<Key, List<AggregationContainer>> resultAggregation = new HashMap<>();
 
     // current state of the container
     private State currentState = new OpenState();
@@ -61,6 +60,8 @@ public class Container<T> {
         aggregates.add(new CountAggregate());
         aggregates.add(new SumAggregate());
         aggregates.add(new AvgAggregate());
+        aggregates.add(new MinAggregate());
+        aggregates.add(new MaxAggregate());
     }
 
     /**
@@ -161,7 +162,7 @@ public class Container<T> {
      */
     private void doAggregate(T object) {
         try {
-            Result key = getFor(object);
+            Result key = getKeyFor(object);
 
             // do the aggregation(s)
             for (Element tuple : key.elements) {
@@ -233,7 +234,7 @@ public class Container<T> {
      * @param requestKey
      * @return
      */
-    private Result getFor(T object) throws IllegalArgumentException, IllegalAccessException {
+    private Result getKeyFor(T object) throws IllegalArgumentException, IllegalAccessException {
         Result requestKey = buildRequestKey(object);
         Result key = resultAggregation.get(requestKey);
         if (key == null) {
@@ -284,6 +285,21 @@ public class Container<T> {
                 result.put(element.getAlias(), element);
             }
             return result;
+        }
+
+        /**
+         * Returns the value for the given alias.
+         *
+         * @param alias (sum, avg, min, ...)
+         * @return the according value or Double.NaN if no such element was found
+         */
+        public double getElement(String alias) {
+            for (Element element : elements) {
+                if (element.getAlias().equals(alias)) {
+                    return element.getValue();
+                }
+            }
+            return Double.NaN;
         }
 
         /**

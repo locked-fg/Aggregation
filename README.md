@@ -52,26 +52,24 @@ The full example (also found in the example package):
 ```java
 public class App {
 
-    static Random r = new Random();
-
     public static void main(String[] args) {
+        // setup
+        Random rand = new Random();
         Container<Entity> container = new Container<>();
-        // container.registerAggregate(new SumAggregate());
 
+        // do the aggregation
         long start = System.currentTimeMillis();
         for (int i = 0; i < 10_000_000; i++) {
-            int a = r.nextInt(2);
-            int b = r.nextInt(2);
-
-            container.aggregate(new Entity(a, b));
+            container.aggregate(new Entity(rand.nextInt(2), rand.nextInt(2)));
         }
         long stop = System.currentTimeMillis();
         System.out.println((stop - start) + "ms");
 
-        for (Container.Result entry : container.getResults()) {
-            System.out.println(entry.toString());
-            for (Container.Element ac : entry.getElements()) {
-                System.out.println("\t" + ac.getAlias() + ": " + ac.getValue());
+        // show the result
+        for (Container.Result result : container.getResults()) {
+            System.out.println(result.toString()); // print the primary key(s)
+            for (String fieldName : container.getAliases()) {
+                System.out.println("\t" + fieldName + ": " + result.getDouble(fieldName));
             }
         }
     }
@@ -124,3 +122,8 @@ Key: 2 2
 
 ## Runtime
 On my machine, the above example creates and aggregates 10 000 000 entities in ~2000ms.
+
+
+## Changelog
+v2.0 Reduced complexity by delegates.
+v1.0 First public release

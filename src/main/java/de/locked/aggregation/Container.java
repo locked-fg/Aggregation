@@ -25,32 +25,67 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Logger;
 
+/**
+ * The Container class acts as aggregation container into which simple entities are pushed and aggregated.
+ *
+ * The result can be obtained at any stage and is represented as a list of key-value pairs. The key is an array of
+ * objects that form the <code>group by</code> element(s). The values are all <code>Elements<code> with a name
+ * (that is given by the annotation, or by the field name) and the result of the aggregation operation.
+ *
+ * Speaking in SQL terms, a result instance is a line of the result and elements are the cells/columns of the line.
+ *
+ * New aggregation functions must extend {@link AbstractAggregate} and must be registered in the container
+ * ({@link #registerAggregate(de.locked.aggregation.AbstractAggregate)}) before the first entities are aggregated.
+ *
+ * <code>
+ * Container&lt;Entity&gt; container = new Container<>();
+ * container.aggregate(new Entity(1, 2));
+ * </code>
+ *
+ * @author Franz
+ * @param <T>
+ */
 public class Container<T> {
 
     private static final Logger LOG = Logger.getLogger(Container.class.getName());
 
-    // fields that cat as primary keys
+    /**
+     * fields acting as primary keys
+     */
     private final List<Field> idFields;
 
-    // aggregate objects that were registered
+    /**
+     * aggregate objects that were registered
+     */
     private final List<AbstractAggregate> aggregates;
 
-    // precomputed Link from class fields to what we want to compute
+    /**
+     * precomputed Link from class fields to what we want to compute
+     */
     private final List<Element> aggregationMapCache = new ArrayList<>();
 
-    // aggregation from a primary key (Key) to the aggregation
-    // this is what you actually want to iterate afterwards!
+    /**
+     * The list of aliases in the entity objects
+     */
+    private final List<String> aliasList = new ArrayList<>();
+
+    /**
+     * Aggregation from a primary key (Key) to the aggregation. This is what you actually want to iterate afterwards!
+     */
     private final Map<Result, Result> resultAggregation;
 
-    // current state of the container
+    /**
+     * current state of the container
+     */
     private State currentState = new OpenState();
 
+    /**
+     * Initialized the container and registeres the default aggregation functions
+     */
     public Container() {
         this.resultAggregation = new HashMap<>();
         this.idFields = new ArrayList<>();
@@ -75,6 +110,15 @@ public class Container<T> {
     }
 
     /**
+     * Gets the (unmodifiable) list of aliases in the entity objects.
+     *
+     * @return
+     */
+    public Collection<String> getAliases() {
+        return Collections.unmodifiableCollection(aliasList);
+    }
+
+    /**
      * Checked call from the state machine at the first call to aggregate.
      *
      * @param clazz the class of the aggregate object.
@@ -90,14 +134,15 @@ public class Container<T> {
                 Class annotationClass = aggregate.getAnnotation();
                 if (f.isAnnotationPresent(annotationClass)) {
                     Annotation annotation = f.getAnnotation(annotationClass);
-                    String alias = getAlias(annotation);
+                    String alias = getAliasFor(annotation);
                     Element tuple = new Element(aggregate, alias, f);
                     aggregationMapCache.add(tuple);
+                    aliasList.add(alias);
                 }
             }
         }
 
-        // sort the id fields by the order
+        // sort the id fields by the specified order
         Collections.sort(idFields, new Comparator<Field>() {
 
             @Override
@@ -117,7 +162,7 @@ public class Container<T> {
      * @param annotation The Annotation to get the value from
      * @return the 'value' or the classname if no value is found (which shouldn't be)
      */
-    private String getAlias(Annotation annotation) {
+    private String getAliasFor(Annotation annotation) {
         try {
             String alias = annotation.getClass().getName();
             Method method = annotation.getClass().getMethod("alias");
@@ -197,7 +242,7 @@ public class Container<T> {
     }
 
     /**
-     * Register Aggregate to the container
+     * Registers an Aggregate (an aggregation function) to the container
      *
      * @param agg The aggregate object to the Container if this object is not already registered.
      */
@@ -256,13 +301,31 @@ public class Container<T> {
         return new Result(k);
     }
 
+    /**
+     * The Result class represents a line of a result.
+     *
+     * Speaking in SQL terms, a result instance is a line of the result and elements are the cells/columns of the line.
+     *
+     * The main operations on this class will be
+     * <ol>
+     * <li>{@link #getKeys()}, in order to obtain the fields used in the<code>group by<code> statement, </li>
+     * <li>{@link #getAliases()} to obtain the accessible fields and </li>
+     * <li><code>#get[Type](java.lang.String)</code> calls to access the value of the fields.</li>
+     * </ol>
+     */
     public static class Result {
 
+        /**
+         * The <code>group by</code> keys
+         */
         private final Object[] keys;
+        /**
+         * The "cells" of the result
+         */
         private List<Element> elements;
 
         /**
-         * Create a new Key Object from the given object array as primary keys.
+         * Create a new key object from the given object array as primary keys.
          *
          * @param keys the Objects representing the primary keys.
          */
@@ -278,20 +341,15 @@ public class Container<T> {
         }
 
         /**
-         * @return map pointing from the alias to the element
+         * Obtain an element by it's name.
+         *
+         * @param alias
+         * @return
          */
-        public Map<String, Element> getElementsMap() {
-            Map<String, Element> result = new HashMap<>();
-            for (Element element : elements) {
-                result.put(element.getAlias(), element);
-            }
-            return result;
-        }
-
-        public AbstractAggregate getAggregate(String alias) {
+        private Element getElement(String alias) {
             for (Element element : elements) {
                 if (element.getAlias().equals(alias)) {
-                    return element.getAggregate();
+                    return element;
                 }
             }
             throw new IllegalArgumentException("no field annotated with alias: '" + alias + "'");
@@ -313,6 +371,32 @@ public class Container<T> {
             return s;
         }
 
+        //<editor-fold defaultstate="collapsed" desc="accessor delegates to the aggregate object">
+        public Object getObject(String field) {
+            return getElement(field).getAggregate().getObject();
+        }
+
+        public char getChar(String field) {
+            return getElement(field).getAggregate().getChar();
+        }
+
+        public int getInt(String field) {
+            return getElement(field).getAggregate().getInt();
+        }
+
+        public boolean getBoolean(String field) {
+            return getElement(field).getAggregate().getBoolean();
+        }
+
+        public double getDouble(String field) {
+            return getElement(field).getAggregate().getDouble();
+        }
+
+        public Collection getCollection(String field) {
+            return getElement(field).getAggregate().getCollection();
+        }
+        //</editor-fold>
+
         @Override
         public int hashCode() {
             int hash = 59 + Arrays.deepHashCode(this.keys);
@@ -328,15 +412,13 @@ public class Container<T> {
                 return false;
             }
             final Result other = (Result) obj;
-            if (!Arrays.deepEquals(this.keys, other.keys)) {
-                return false;
-            }
-            return true;
+            return Arrays.deepEquals(this.keys, other.keys);
         }
 
         private void init(List<Element> list) {
             this.elements = Collections.unmodifiableList(list);
         }
+
     }
 
     /**
@@ -371,10 +453,10 @@ public class Container<T> {
      *
      * The element itself is identified by the alias, the field to which the alias was assigned and the
      * (Abstract)Aggregate object itself. One aggragtion container stores multiple Elements - one for each field.
-     * 
+     *
      * The class might get renamed to a more appropriate name in the future.
      */
-    public static class Element {
+    private static class Element {
 
         private final String alias;
         private final AbstractAggregate agg;

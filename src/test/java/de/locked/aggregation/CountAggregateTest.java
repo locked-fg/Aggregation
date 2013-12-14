@@ -33,7 +33,7 @@ public class CountAggregateTest {
 
         for (Container.Result entry : container.getResults()) {
             Object key = entry.getKeys()[0];
-            int value = entry.getAggregate("value").getInt();
+            int value = entry.getInt("value");
             if (key.equals(1)) {
                 assertEquals(1, value);
             } else if (key.equals(2)) {

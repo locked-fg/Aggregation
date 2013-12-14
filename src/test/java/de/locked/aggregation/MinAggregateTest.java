@@ -32,7 +32,7 @@ public class MinAggregateTest {
 
         for (Container.Result entry : container.getResults()) {
             Object key = entry.getKeys()[0];
-            double value = entry.getAggregate("value").getDouble();
+            double value = entry.getDouble("value");
             if (key.equals(1)) {
                 assertEquals(1, value, 0.000d);
             } else if (key.equals(2)) {

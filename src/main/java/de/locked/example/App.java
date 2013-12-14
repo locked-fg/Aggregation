@@ -9,27 +9,24 @@ import java.util.Random;
 
 public class App {
 
-    static Random r = new Random();
-
     public static void main(String[] args) {
+        // setup
+        Random rand = new Random();
         Container<Entity> container = new Container<>();
-        // container.registerAggregate(new SumAggregate());
 
+        // do the aggregation
         long start = System.currentTimeMillis();
         for (int i = 0; i < 10_000_000; i++) {
-            int a = r.nextInt(2);
-            int b = r.nextInt(2);
-
-            container.aggregate(new Entity(a, b));
+            container.aggregate(new Entity(rand.nextInt(2), rand.nextInt(2)));
         }
         long stop = System.currentTimeMillis();
         System.out.println((stop - start) + "ms");
 
-        for (Container.Result entry : container.getResults()) {
-            System.out.println(entry.toString());
-            for (Container.Element element : entry.getElements()) {
-                element.getAggregate();
-                System.out.println("\t" + element.getAlias() + ": " + element.getDouble());
+        // show the result
+        for (Container.Result result : container.getResults()) {
+            System.out.println(result.toString()); // print the primary key(s)
+            for (String fieldName : container.getAliases()) {
+                System.out.println("\t" + fieldName + ": " + result.getDouble(fieldName));
             }
         }
     }

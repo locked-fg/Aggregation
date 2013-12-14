@@ -34,7 +34,7 @@ public class DistinctAggregateTest {
 
         for (Container.Result entry : container.getResults()) {
             Object key = entry.getKeys()[0];
-            Collection values = entry.getAggregate("value").getCollection();
+            Collection values = entry.getCollection("value");
             if (key.equals(1)) {
                 assertEquals(1, values.size());
                 assertTrue(values.contains("a"));

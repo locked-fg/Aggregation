@@ -6,9 +6,9 @@ all objects would have been be too easy. What I actually needed was an object or
 ```sql
 SELECT field1, field2, field3, SUM(field_X) FROM objectlist GROUP BY field1, field2, field3
 ```
-With ```objectlist``` being of a list (or more often a stream) of objects from classes like this:
+With ```objectlist``` being a list (or more often: a stream) of objects from classes like this:
 ```java
-class Entitiy {
+class Entity {
  // group by those fields
  int field1;
  String field2;
@@ -20,13 +20,14 @@ class Entitiy {
 ```
 Holding all objects in memory and summing/grouping at the end wasn't an option in our cases where millions of 
 entities are streamed through the application. And especially defining the aggregates and a pseudo primary key by 
-hand is far from coder friendly and error prone as it involves overriding hashode, equals etc ...
+hand is far from coder friendly and error prone as it involves overriding hashCode(), equals() which is usually 
+very boilerplate.
 This sometimes ended up in disgusting constructs like ```Map<Integer, Map<String, Map<Boolean, Double>>```.
-Of course iterating through the result was fun, too, as you always needed several nested loops.
+Of course iterating through the result was no fun, too, as we always needed several nested loops.
 
-So I prototyped this aggregation container that works with simple classes and annotations.
+So I wrote this aggregation container that works with simple classes and annotations.
 The entities just need to be annotated and pushed into the container. The rest is done automatically. No need to 
-override hashcode() or equals(), no extending classes, no nested/multi dimensional HashMaps.
+override hashCode() or equals(), no extending classes, no nested/multi dimensional HashMaps.
 ```java
 class Entity {
 
@@ -59,11 +60,10 @@ public class App {
 
         long start = System.currentTimeMillis();
         for (int i = 0; i < 10_000_000; i++) {
-            int a = r.nextInt(2) + 1;
-            int b = r.nextInt(2) + 1;
+            int a = r.nextInt(2);
+            int b = r.nextInt(2);
 
-            Entity aa = new Entity(a, b);
-            container.aggregate(aa);
+            container.aggregate(new Entity(a, b));
         }
         long stop = System.currentTimeMillis();
         System.out.println((stop - start) + "ms");

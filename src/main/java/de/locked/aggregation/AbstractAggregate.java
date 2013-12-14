@@ -26,7 +26,7 @@ public abstract class AbstractAggregate {
 
     public AbstractAggregate(Class clazz) {
         if (!clazz.isAnnotation()) {
-            throw new IllegalArgumentException("class must ne an Annotation");
+            throw new IllegalArgumentException("class must ne an annotation");
         }
         this.annotation = clazz;
     }

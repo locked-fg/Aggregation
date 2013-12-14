@@ -17,11 +17,10 @@ public class App {
 
         long start = System.currentTimeMillis();
         for (int i = 0; i < 10_000_000; i++) {
-            int a = r.nextInt(2) + 1;
-            int b = r.nextInt(2) + 1;
+            int a = r.nextInt(2);
+            int b = r.nextInt(2);
 
-            Entity aa = new Entity(a, b);
-            container.aggregate(aa);
+            container.aggregate(new Entity(a, b));
         }
         long stop = System.currentTimeMillis();
         System.out.println((stop - start) + "ms");

@@ -32,9 +32,9 @@ override hashCode() or equals(), no extending classes, no nested/multi dimension
 class Entity {
 
     @Id 
-    int a = 0;
+    public int a = 0;
     @Id 
-    long b = 1;
+    public long b = 1;
 
     @Count(alias = "count")
     int cnt = 0;
@@ -78,16 +78,16 @@ public class App {
 class Entity {
 
     @Id(order = 0)
-    int a;
+    public int a;
     @Id(order = 1)
-    long b;
+    public long b;
 
     @Sum(alias = "mySum")
-    int cnt1 = 0;
+    public int cnt1 = 0;
 
     @Count(alias = "count")
     @Avg(alias = "myAverage")
-    int cnt2 = 0;
+    public int cnt2 = 0;
 
     public Entity(int a, int b) {
         this.a = a;

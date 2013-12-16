@@ -47,10 +47,10 @@ public class MaxAggregateTest {
     class Entity {
 
         @Id(order = 0)
-        int key;
+        public int key;
 
         @Max(alias = "value")
-        int value = 0;
+        public int value = 0;
 
         public Entity(int a, int b) {
             this.key = a;

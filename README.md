@@ -125,5 +125,7 @@ On my machine, the above example creates and aggregates 10 000 000 entities in ~
 
 
 ## Changelog
-v2.0 Reduced complexity by delegates.
+v2.0 
+    - Reduced complexity by delegates.
+    - Support inheritence and thus all the fields must be public
 v1.0 First public release

@@ -53,10 +53,10 @@ public class DistinctAggregateTest {
     class Entity {
 
         @Id(order = 0)
-        int key;
+        public int key;
 
         @Distinct(alias = "value")
-        String value;
+        public String value;
 
         public Entity(int a, String b) {
             this.key = a;

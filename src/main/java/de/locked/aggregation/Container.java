@@ -124,7 +124,9 @@ public class Container<T> {
      * @param clazz the class of the aggregate object.
      */
     private void doPrepare(Class clazz) {
-        Field[] fields = clazz.getDeclaredFields();
+//        Field[] fields = clazz.getDeclaredFields();
+        Field[] fields = clazz.getFields();
+            
         for (Field f : fields) {
             if (f.isAnnotationPresent(Id.class)) {
                 f.setAccessible(true);
@@ -142,6 +144,13 @@ public class Container<T> {
             }
         }
 
+        if (idFields.isEmpty()) {
+            throw new IllegalStateException("No fields with the @Id annotation were found!");
+        }
+        if (aliasList.isEmpty()) {
+            throw new IllegalStateException("No fields with aggregation annotations were found!");
+        }
+        
         // sort the id fields by the specified order
         Collections.sort(idFields, new Comparator<Field>() {
 
@@ -456,7 +465,7 @@ public class Container<T> {
      *
      * The class might get renamed to a more appropriate name in the future.
      */
-    private static class Element {
+    static class Element {
 
         private final String alias;
         private final AbstractAggregate agg;
